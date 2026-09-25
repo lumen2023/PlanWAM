@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PlanWAM: Planning-Shaped Future Representations</title>
+    <meta name="description" content="PlanWAM is a planning-shaped world-action model for foresighted end-to-end autonomous driving.">
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="referrer" content="no-referrer">
+
+    <link rel="stylesheet" href="assets/stylesheets/main_free.css">
+    <link rel="stylesheet" href="assets/fontawesome-free-7.2.0-web/css/all.min.css">
+    <link rel="stylesheet" href="assets/stylesheets/planwam.css">
+    <script src="assets/scripts/navbar.js" defer></script>
+    <script src="assets/scripts/planwam.js" defer></script>
+</head>
+
+<body>
+    <header class="planwam-hero" id="top">
+        <div class="hero-inner">
+            <div class="hero-copy">
+                <p class="eyebrow">Under review at ICLR 2027</p>
+                <h1>PlanWAM: Planning-Shaped Future Representations for End-to-End Autonomous Driving</h1>
+                <p class="hero-authors">Anonymous authors</p>
+                <p class="hero-status">Paper under double-blind review</p>
+                <p class="hero-abstract">
+                    World models in end-to-end autonomous driving predict future scene evolution to provide foresight for trajectory planning.
+                    PlanWAM asks a more fundamental question: which future representation is actually useful for planning?
+                    We let planning objectives shape the future latent representation, then distill it into a history-only causal prior for deployable foresight.
+                </p>
+                <div class="hero-actions">
+                    <a class="button icon primary-action" href="src/iclr2027_conference.pdf">
+                        Paper <i class="fa-regular fa-file-lines" aria-hidden="true"></i>
+                    </a>
+                    <a class="button icon secondary-action" href="https://anonymous.4open.science/r/PlanWAM-DE80/README.md" target="_blank" rel="noreferrer">
+                        Code <i class="fa-solid fa-code" aria-hidden="true"></i>
+                    </a>
+                    <a class="button icon secondary-action" href="#method">
+                        Method <i class="fa-solid fa-arrow-down" aria-hidden="true"></i>
+                    </a>
+                </div>
+            </div>
+            <figure class="hero-visual">
+                <img class="zoomable" src="src/%E5%BE%AE%E4%BF%A1%E5%9B%BE%E7%89%87_20260925222501_1050_103.png" alt="Qualitative planning results on NAVSIM and zero-shot HUGSIM scenarios">
+                <figcaption>PlanWAM improves safety-aware planning on NAVSIM and transfers zero-shot across HUGSIM driving domains.</figcaption>
+            </figure>
+        </div>
+        <div class="hero-rule" aria-hidden="true"></div>
+    </header>
+
+    <main>
+        <section class="container blog main first section-block" id="overview">
+            <div class="section-kicker">01 / Overview</div>
+            <h1>Overview</h1>
+            <div class="intro-grid">
+                <div>
+                    <p class="text lead">
+                        Existing driving world models mainly study how to predict the future and how to use it.
+                        PlanWAM instead studies which future information should be represented in the first place.
+                        The central idea is to shape the future latent with trajectory-planning objectives, so the model preserves information that directly matters for decisions.
+                    </p>
+                    <p class="text">
+                        A Temporal Register Pyramid compresses multi-frame observations into a compact, recency-aware history.
+                        A privileged future posterior learns a planning-oriented future latent from ground-truth future frames during training.
+                        Hindsight-to-Foresight Distillation then teaches a causal prior to predict that latent from history alone.
+                    </p>
+                </div>
+                <aside class="question-panel">
+                    <span class="question-label">Research question</span>
+                    <p>Which future representation is actually useful for planning?</p>
+                    <span class="question-mark" aria-hidden="true">?</span>
+                </aside>
+            </div>
+
+            <div class="metric-grid" aria-label="Headline results">
+                <div class="metric">
+                    <strong>93.8</strong>
+                    <span>PDMS</span>
+                    <small>NAVSIM-v1 navtest</small>
+                </div>
+                <div class="metric">
+                    <strong>90.9</strong>
+                    <span>EPDMS</span>
+                    <small>NAVSIM-v2 navtest</small>
+                </div>
+                <div class="metric">
+                    <strong>38.7</strong>
+                    <span>HD-Score</span>
+                    <small>HUGSIM, zero-shot</small>
+                </div>
+                <div class="metric">
+                    <strong>53.7</strong>
+                    <span>Route Completion</span>
+                    <small>HUGSIM, zero-shot</small>
+                </div>
+            </div>
+        </section>
+
+        <section class="container blog main gray section-block" id="motivation">
+            <div class="section-kicker">02 / Motivation</div>
+            <h1>Motivation</h1>
+            <p class="text">
+                Future modeling in driving has moved from explicit reconstruction to compact latent prediction and then to future-conditioned planning.
+                PlanWAM keeps the useful foresight of these approaches while making the planning objective responsible for deciding what future information is retained.
+            </p>
+            <figure class="figure-wide">
+                <img class="zoomable" src="src/%E5%BE%AE%E4%BF%A1%E5%9B%BE%E7%89%87_20260925222507_1055_103.png" alt="Comparison of future reconstruction, latent prediction, future-conditioned planning, and PlanWAM">
+                <figcaption><b>Figure 1.</b> Four future-modeling paradigms in driving world-action models. PlanWAM uses a training-only posterior to shape a future latent and a causal prior to make it available at inference.</figcaption>
+            </figure>
+
+            <div class="three-column">
+                <article class="principle">
+                    <span class="principle-number">A</span>
+                    <h2>Future information should be selective</h2>
+                    <p class="text">A representation that reconstructs visual detail is not necessarily the representation that best supports trajectory decisions.</p>
+                </article>
+                <article class="principle">
+                    <span class="principle-number">B</span>
+                    <h2>History should preserve dynamics</h2>
+                    <p class="text">Historical compression should prioritize motion trends and interactions instead of treating every frame equally.</p>
+                </article>
+                <article class="principle">
+                    <span class="principle-number">C</span>
+                    <h2>Foresight must be deployable</h2>
+                    <p class="text">Future observations are available only during training, so the useful target must be distilled into a history-only prior.</p>
+                </article>
+            </div>
+        </section>
+
+        <section class="container blog main section-block" id="method">
+            <div class="section-kicker">03 / Method</div>
+            <h1>Method</h1>
+            <p class="text lead">
+                PlanWAM unifies historical modeling, future representation learning, and trajectory planning into a planning-oriented predictive representation framework.
+            </p>
+            <figure class="figure-wide">
+                <img class="zoomable" src="src/%E5%BE%AE%E4%BF%A1%E5%9B%BE%E7%89%87_20260925222506_1054_103.png" alt="PlanWAM training and inference architecture with prior and posterior branches">
+                <figcaption><b>Figure 2.</b> PlanWAM trains a privileged posterior branch and a deployable prior branch. The posterior is removed at inference, leaving a history-conditioned future latent to guide both trajectory generation and selection.</figcaption>
+            </figure>
+
+            <div class="method-list">
+                <article class="method-row">
+                    <div class="method-index">01</div>
+                    <div>
+                        <h2>Temporal Register Pyramid</h2>
+                        <p class="text">
+                            Multi-frame, multi-view observations are compressed with a recency-aware query allocation.
+                            The four temporal levels use <code>[4, 4, 8, 16]</code> queries per camera, yielding a compact 128-token history representation.
+                            Recent frames receive more capacity because they carry stronger cues for immediate future reasoning.
+                        </p>
+                    </div>
+                </article>
+                <article class="method-row">
+                    <div class="method-index">02</div>
+                    <div>
+                        <h2>Planning-Shaped Future Posterior</h2>
+                        <p class="text">
+                            During training, the posterior observes future multi-view frames over a four-second horizon.
+                            Its future latent is shaped by trajectory generation and scoring objectives rather than generic feature reconstruction,
+                            producing a target representation aligned with the downstream planning task.
+                        </p>
+                    </div>
+                </article>
+                <article class="method-row">
+                    <div class="method-index">03</div>
+                    <div>
+                        <h2>Hindsight-to-Foresight Distillation</h2>
+                        <p class="text">
+                            A causal prior uses learnable future queries and historical context only.
+                            Latent alignment transfers the posterior's privileged future information into a history-only prediction that is available at deployment.
+                        </p>
+                    </div>
+                </article>
+                <article class="method-row">
+                    <div class="method-index">04</div>
+                    <div>
+                        <h2>Foresight-Conditioned Planning</h2>
+                        <p class="text">
+                            The predicted future latent is concatenated with the historical context and provided to both the trajectory planner and scorer.
+                            This lets foresight influence candidate generation and final trajectory selection.
+                        </p>
+                    </div>
+                </article>
+            </div>
+
+            <div class="equation-grid">
+                <div class="equation-card">
+                    <span>Stage 1: privileged posterior</span>
+                    <code>L_task = L_plan + L_score + lambda_reg L_reg</code>
+                </div>
+                <div class="equation-card">
+                    <span>Stage 2: causal prior</span>
+                    <code>L_train = L_task + lambda_latent L_latent</code>
+                </div>
+            </div>
+
+            <figure class="figure-medium">
+                <img class="zoomable" src="src/%E5%BE%AE%E4%BF%A1%E5%9B%BE%E7%89%87_20260925222502_1051_103.png" alt="Temporal Register Pyramid for recency-aware historical representation">
+                <figcaption><b>Figure 3.</b> The Temporal Register Pyramid allocates more queries to recent history while compressing scene registers across cameras and time.</figcaption>
+            </figure>
+        </section>
+
+        <section class="container blog main gray section-block" id="experiments">
+            <div class="section-kicker">04 / Experiments</div>
+            <h1>Experiments</h1>
+            <p class="text">
+                We train on 103,288 NAVSIM navtrain scenes and evaluate on the 12,146-scene navtest split.
+                NAVSIM-v1 reports PDMS, NAVSIM-v2 reports EPDMS, and HUGSIM evaluates zero-shot closed-loop transfer without simulator-specific fine-tuning.
+            </p>
+
+            <div class="setup-strip">
+                <div><strong>H = 4</strong><span>historical frames</span></div>
+                <div><strong>4</strong><span>camera views</span></div>
+                <div><strong>256</strong><span>future latent tokens</span></div>
+                <div><strong>K = 64</strong><span>candidate trajectories</span></div>
+                <div><strong>8</strong><span>waypoints per trajectory</span></div>
+            </div>
+
+            <h2>NAVSIM-v2 navtest</h2>
+            <p class="table-note">The best learned result in each column is shown in bold.</p>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Method</th><th>Reference</th><th>NC</th><th>DAC</th><th>DDC</th><th>TLC</th><th>EP</th><th>TTC</th><th>LK</th><th>HC</th><th>EC</th><th>EPDMS</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="baseline"><td>Human Agent</td><td>-</td><td>100.0</td><td>100.0</td><td>99.8</td><td>100.0</td><td>87.4</td><td>100.0</td><td>100.0</td><td>98.1</td><td>90.1</td><td>90.3</td></tr>
+                        <tr class="group"><td colspan="12">E2E-based planners</td></tr>
+                        <tr><td>TransFuser</td><td>TPAMI'22</td><td>96.9</td><td>89.9</td><td>97.8</td><td>99.7</td><td>87.1</td><td>95.4</td><td>92.7</td><td>98.3</td><td>87.2</td><td>76.7</td></tr>
+                        <tr><td>DiffusionDrive</td><td>CVPR'25</td><td>98.2</td><td>95.9</td><td>99.4</td><td>99.8</td><td>87.5</td><td>97.3</td><td>96.8</td><td>98.3</td><td>87.7</td><td>84.5</td></tr>
+                        <tr><td>MeanFuser</td><td>CVPR'26</td><td>98.3</td><td>97.2</td><td>99.6</td><td>99.8</td><td>87.6</td><td>97.4</td><td>97.3</td><td>98.3</td><td>88.2</td><td>89.5</td></tr>
+                        <tr class="group"><td colspan="12">VLM-based planners</td></tr>
+                        <tr><td>ReCogDrive</td><td>ICLR'26</td><td>98.3</td><td>95.2</td><td>99.5</td><td>99.8</td><td>87.1</td><td>97.5</td><td>96.6</td><td>98.3</td><td>86.5</td><td>83.6</td></tr>
+                        <tr><td>SGDrive</td><td>CVPR'26</td><td>98.6</td><td>94.3</td><td>99.5</td><td>99.9</td><td>86.0</td><td>97.9</td><td>96.1</td><td>98.3</td><td>85.9</td><td>86.2</td></tr>
+                        <tr><td>ExploreVLA</td><td>ECCV'26</td><td>98.8</td><td>96.2</td><td>99.6</td><td>99.8</td><td>87.1</td><td>98.2</td><td>97.8</td><td>98.3</td><td>86.8</td><td>88.8</td></tr>
+                        <tr class="group"><td colspan="12">World-model-based planners</td></tr>
+                        <tr><td>DriveVLA-W0</td><td>ICLR'26</td><td>98.5</td><td>99.1</td><td>98.0</td><td>99.7</td><td>86.4</td><td>98.1</td><td>93.2</td><td>97.9</td><td>58.9</td><td>86.1</td></tr>
+                        <tr><td>DriveLaW</td><td>CVPR'26</td><td>98.7</td><td>96.9</td><td>99.6</td><td>99.8</td><td>87.5</td><td>98.3</td><td>97.6</td><td>98.4</td><td>77.4</td><td>88.6</td></tr>
+                        <tr><td>DreamerAD</td><td>ECCV'26</td><td>98.0</td><td>97.2</td><td>99.5</td><td>99.8</td><td>87.8</td><td>97.4</td><td>97.5</td><td>98.3</td><td>72.4</td><td>87.7</td></tr>
+                        <tr><td>Latent-WAM</td><td>arXiv'26</td><td>98.1</td><td>97.3</td><td>99.6</td><td>99.8</td><td>87.7</td><td>97.3</td><td>97.6</td><td>98.1</td><td>87.3</td><td>89.3</td></tr>
+                        <tr><td>DriveFuture</td><td>arXiv'26</td><td>98.8</td><td>99.1</td><td>99.6</td><td>99.9</td><td>86.6</td><td>98.4</td><td>96.4</td><td>98.3</td><td>74.8</td><td>89.9</td></tr>
+                        <tr class="ours"><td>PlanWAM (ours)</td><td>-</td><td>99.0</td><td>99.2</td><td>99.8</td><td>99.6</td><td>90.8</td><td>98.5</td><td>96.5</td><td>98.1</td><td>70.5</td><td>90.9</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="result-block">
+                <h2>NAVSIM-v1 navtest</h2>
+                <div class="table-wrap">
+                    <table>
+                        <thead><tr><th>Method</th><th>NC</th><th>DAC</th><th>TTC</th><th>C</th><th>EP</th><th>PDMS</th></tr></thead>
+                        <tbody>
+                            <tr class="baseline"><td>Human Agent</td><td>100.0</td><td>100.0</td><td>100.0</td><td>99.9</td><td>87.5</td><td>94.8</td></tr>
+                            <tr class="group"><td colspan="7">E2E-based planners</td></tr>
+                            <tr><td>DiffusionDrive</td><td>98.2</td><td>96.2</td><td>94.7</td><td>100.0</td><td>82.2</td><td>88.1</td></tr>
+                            <tr><td>MeanFuser</td><td>98.6</td><td>97.0</td><td>95.0</td><td>100.0</td><td>82.8</td><td>89.0</td></tr>
+                            <tr><td>iPad</td><td>98.6</td><td>98.3</td><td>94.9</td><td>100.0</td><td>88.0</td><td>91.7</td></tr>
+                            <tr><td>DrivoR</td><td>98.9</td><td>98.3</td><td>96.2</td><td>100.0</td><td>89.1</td><td>93.1</td></tr>
+                            <tr class="group"><td colspan="7">VLM-based planners</td></tr>
+                            <tr><td>AutoVLA</td><td>98.4</td><td>95.6</td><td>98.0</td><td>99.9</td><td>81.9</td><td>89.1</td></tr>
+                            <tr><td>ReCogDrive</td><td>97.9</td><td>97.3</td><td>94.9</td><td>100.0</td><td>87.3</td><td>90.8</td></tr>
+                            <tr><td>ExploreVLA</td><td>98.8</td><td>98.4</td><td>96.5</td><td>99.9</td><td>83.5</td><td>90.4</td></tr>
+                            <tr><td>SGDrive</td><td>98.6</td><td>97.8</td><td>96.2</td><td>100.0</td><td>85.8</td><td>91.1</td></tr>
+                            <tr class="group"><td colspan="7">World-model-based planners</td></tr>
+                            <tr><td>WoTE</td><td>98.5</td><td>96.8</td><td>94.9</td><td>99.9</td><td>81.9</td><td>88.3</td></tr>
+                            <tr><td>Epona</td><td>97.9</td><td>95.1</td><td>93.8</td><td>99.9</td><td>80.4</td><td>86.2</td></tr>
+                            <tr><td>DreamerAD</td><td>98.0</td><td>97.2</td><td>94.3</td><td>100.0</td><td>83.1</td><td>88.7</td></tr>
+                            <tr><td>DriveLaW</td><td>99.0</td><td>97.1</td><td>96.7</td><td>100.0</td><td>81.3</td><td>89.1</td></tr>
+                            <tr><td>DriveVLA-W0</td><td>98.7</td><td>99.1</td><td>95.3</td><td>99.3</td><td>83.3</td><td>90.2</td></tr>
+                            <tr><td>DriveFuture</td><td>98.8</td><td>99.1</td><td>95.4</td><td>100.0</td><td>84.2</td><td>90.7</td></tr>
+                            <tr class="ours"><td>PlanWAM (ours)</td><td>98.9</td><td>98.8</td><td>96.3</td><td>100.0</td><td>91.0</td><td>93.8</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="result-block">
+                <h2>HUGSIM zero-shot closed-loop</h2>
+                <p class="table-note">Results are reported separately for Route Completion and HD-Score across Easy, Medium, Hard, and Extreme scenarios.</p>
+                <div class="table-wrap">
+                    <table>
+                        <thead><tr><th>Method</th><th>E</th><th>M</th><th>H</th><th>X</th><th>Avg.</th></tr></thead>
+                        <tbody>
+                            <tr class="group"><td colspan="6">Route Completion</td></tr>
+                            <tr><td>UniAD</td><td>58.6</td><td>41.2</td><td>40.4</td><td>26.0</td><td>40.6</td></tr>
+                            <tr><td>VAD</td><td>38.7</td><td>27.0</td><td>25.5</td><td>23.0</td><td>27.9</td></tr>
+                            <tr><td>LTF</td><td>68.4</td><td>40.7</td><td>36.9</td><td>25.5</td><td>41.4</td></tr>
+                            <tr><td>GTRS-Dense</td><td>64.2</td><td>50.0</td><td>20.7</td><td>22.3</td><td>38.0</td></tr>
+                            <tr><td>Latent-WAM</td><td>84.2</td><td>42.5</td><td>30.6</td><td>35.5</td><td>45.9</td></tr>
+                            <tr class="ours"><td>PlanWAM (ours)</td><td>87.6</td><td>48.3</td><td>51.9</td><td>37.2</td><td>53.7</td></tr>
+                            <tr class="group"><td colspan="6">HD-Score</td></tr>
+                            <tr><td>UniAD</td><td>48.7</td><td>29.5</td><td>27.3</td><td>14.3</td><td>28.9</td></tr>
+                            <tr><td>VAD</td><td>24.3</td><td>9.9</td><td>10.4</td><td>8.2</td><td>12.3</td></tr>
+                            <tr><td>LTF</td><td>52.8</td><td>24.6</td><td>19.8</td><td>8.1</td><td>24.8</td></tr>
+                            <tr><td>GTRS-Dense</td><td>55.5</td><td>39.0</td><td>11.7</td><td>14.3</td><td>28.6</td></tr>
+                            <tr><td>Latent-WAM</td><td>72.5</td><td>24.0</td><td>12.2</td><td>18.1</td><td>28.9</td></tr>
+                            <tr class="ours"><td>PlanWAM (ours)</td><td>75.3</td><td>32.9</td><td>35.6</td><td>22.0</td><td>38.7</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <figure class="figure-wide">
+                <img class="zoomable" src="src/%E5%BE%AE%E4%BF%A1%E5%9B%BE%E7%89%87_20260925222501_1050_103.png" alt="Qualitative comparison with DrivoR on NAVSIM and zero-shot HUGSIM rollouts">
+                <figcaption><b>Figure 4.</b> Qualitative planning results. PlanWAM better accounts for surrounding vehicles on NAVSIM and transfers across KITTI-360, PandaSet, nuScenes, and Waymo in HUGSIM.</figcaption>
+            </figure>
+        </section>
+
+        <section class="container blog main section-block" id="ablations">
+            <div class="section-kicker">05 / Ablations</div>
+            <h1>Ablations</h1>
+            <p class="text">
+                Ablations on NAVSIM-v1 navtest isolate the contribution of the three core components and test how future representations are learned, compressed, distilled, and used.
+            </p>
+
+            <h2>Core component ablation</h2>
+            <div class="table-wrap compact-table">
+                <table>
+                    <thead><tr><th>ID</th><th>TRP</th><th>H2F</th><th>FCP</th><th>NC</th><th>DAC</th><th>TTC</th><th>C</th><th>EP</th><th>PDMS</th></tr></thead>
+                    <tbody>
+                        <tr><td>0</td><td>no</td><td>no</td><td>no</td><td>98.3</td><td>98.9</td><td>94.6</td><td>100.0</td><td>90.5</td><td>93.1</td></tr>
+                        <tr><td>1</td><td>yes</td><td>no</td><td>no</td><td>98.8</td><td>98.8</td><td>95.3</td><td>100.0</td><td>90.9</td><td>93.4</td></tr>
+                        <tr><td>2</td><td>yes</td><td>yes</td><td>no</td><td>98.6</td><td>98.6</td><td>95.5</td><td>100.0</td><td>91.5</td><td>93.5</td></tr>
+                        <tr class="ours"><td>3</td><td>yes</td><td>yes</td><td>yes</td><td>98.9</td><td>98.8</td><td>96.3</td><td>100.0</td><td>91.0</td><td>93.8</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <p class="annotation">TRP, H2F, and FCP improve PDMS from <b>93.1 to 93.4 to 93.5 to 93.8</b>, showing complementary gains from history compression, future distillation, and foresight-conditioned planning.</p>
+
+            <div class="results-two-column">
+                <div>
+                    <h2>Future representation</h2>
+                    <div class="table-wrap compact-table">
+                        <table>
+                            <thead><tr><th>Future representation</th><th>Supervision</th><th>PDMS</th></tr></thead>
+                            <tbody>
+                                <tr><td>Null future</td><td>-</td><td>93.4</td></tr>
+                                <tr><td>Generic future latent</td><td>L_feature</td><td>93.5</td></tr>
+                                <tr class="ours"><td>Planning-shaped latent</td><td>L_plan + L_score</td><td>93.8</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div>
+                    <h2>Future latent usage</h2>
+                    <div class="table-wrap compact-table">
+                        <table>
+                            <thead><tr><th>Generation</th><th>Selection</th><th>PDMS</th></tr></thead>
+                            <tbody>
+                                <tr><td>no</td><td>no</td><td>93.5</td></tr>
+                                <tr><td>yes</td><td>no</td><td>93.5</td></tr>
+                                <tr><td>no</td><td>yes</td><td>93.7</td></tr>
+                                <tr class="ours"><td>yes</td><td>yes</td><td>93.8</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="results-two-column">
+                <div>
+                    <h2>Temporal allocation</h2>
+                    <div class="table-wrap compact-table">
+                        <table>
+                            <thead><tr><th>Query allocation</th><th>Tokens</th><th>Latency (ms)</th><th>PDMS</th></tr></thead>
+                            <tbody>
+                                <tr><td>[16, 16, 16, 16]</td><td>256</td><td>380</td><td>93.6</td></tr>
+                                <tr><td>[8, 8, 8, 8]</td><td>128</td><td>343</td><td>93.4</td></tr>
+                                <tr><td>[16, 8, 4, 4]</td><td>128</td><td>346</td><td>92.9</td></tr>
+                                <tr class="ours"><td>[4, 4, 8, 16]</td><td>128</td><td>342</td><td>93.8</td></tr>
+                                <tr><td>[2, 4, 8, 16]</td><td>120</td><td>335</td><td>93.6</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div>
+                    <h2>Future latent distillation</h2>
+                    <div class="table-wrap compact-table">
+                        <table>
+                            <thead><tr><th>Setting</th><th>Posterior init.</th><th>L_latent</th><th>Similarity</th><th>PDMS</th></tr></thead>
+                            <tbody>
+                                <tr><td>Prior-only</td><td>no</td><td>no</td><td>0.22</td><td>93.4</td></tr>
+                                <tr><td>+ Posterior init.</td><td>yes</td><td>no</td><td>0.46</td><td>93.5</td></tr>
+                                <tr><td>+ H2F distillation</td><td>no</td><td>yes</td><td>0.92</td><td>93.7</td></tr>
+                                <tr class="ours"><td>Init. + H2F</td><td>yes</td><td>yes</td><td>0.93</td><td>93.8</td></tr>
+                                <tr><td>Privileged posterior</td><td>-</td><td>-</td><td>-</td><td>95.0</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <figure class="figure-wide">
+                <img class="zoomable" src="src/%E5%BE%AE%E4%BF%A1%E5%9B%BE%E7%89%87_20260925222504_1052_103.png" alt="Failure type comparison and attribution of failure reduction">
+                <figcaption><b>Figure 5.</b> Planning-oriented foresight reduces safety-critical failure cases. NC, TTC, and DDC failures decrease by 62.3%, 62.4%, and 66.7%, while total failure cases fall from 314 to 237.</figcaption>
+            </figure>
+        </section>
+
+        <section class="container blog main gray section-block" id="citation">
+            <div class="section-kicker">06 / Citation</div>
+            <h1>Citation</h1>
+            <p class="text">
+                This is the anonymous submission version. Author names, affiliations, and publication identifiers are intentionally omitted for double-blind review.
+            </p>
+            <div class="citation-box">
+                <pre><code id="bibtex">@inproceedings{planwam2027,
+  title     = {PlanWAM: Planning-Shaped Future Representations for End-to-End Autonomous Driving},
+  author    = {Anonymous authors},
+  booktitle = {International Conference on Learning Representations},
+  year      = {2027},
+  note      = {Under review}
+}</code><button class="copy-button" type="button" data-copy-target="bibtex" title="Copy BibTeX" aria-label="Copy BibTeX"><i class="fa-regular fa-copy" aria-hidden="true"></i></button></pre>
+            </div>
+        </section>
+    </main>
+
+    <footer class="site-footer">
+        <div class="footer-inner">
+            <span>PlanWAM / Anonymous ICLR 2027 submission</span>
+            <a href="#top" aria-label="Back to top" title="Back to top"><i class="fa-solid fa-arrow-up" aria-hidden="true"></i></a>
+        </div>
+    </footer>
+
+    <div class="image-modal" id="image-modal" aria-hidden="true">
+        <button class="modal-close" type="button" aria-label="Close enlarged image" title="Close"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+        <img id="modal-image" src="" alt="">
+    </div>
+</body>
+</html>
